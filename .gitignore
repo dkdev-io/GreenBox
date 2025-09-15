@@ -1,0 +1,70 @@
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+
+# React Native
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# React Native specific
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/
+
+# macOS
+.DS_Store
+
+# Watchman
+.watchmanconfig
+
+# Android
+android/app/build/
+android/app/release/
+android/gradle/
+android/.gradle/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+
+# iOS
+ios/build/
+ios/Pods/
+ios/*.xcworkspace
+ios/*.xcuserdata
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Dependencies
+node_modules/
+bower_components/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# OS generated files
+Thumbs.db
