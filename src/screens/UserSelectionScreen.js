@@ -1,17 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, TextInput } from 'react-native';
-import { authenticateTestUser, TEST_USERS } from '../services/supabase';
-import { storeCurrentUser, initializeTestUserKeys } from '../services/secureStorage';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { initializeTestUserKeys } from '../services/secureStorage';
+import { authenticateUser } from '../services/supabase';
 
 export default function UserSelectionScreen({ navigation }) {
-  const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
 
   useEffect(() => {
-    // Initialize test user keys in secure storage on first load
     initializeKeys();
   }, []);
 
@@ -26,29 +21,22 @@ export default function UserSelectionScreen({ navigation }) {
     }
   };
 
-  const handleAuth = async () => {
-    setLoading(true);
+  const handleAuth = async (userType) => {
     try {
-      // For Phase 0, randomly select a test user (in real app this would be proper auth)
-      const userType = Math.random() > 0.5 ? 'userA' : 'userB';
+      const result = await authenticateUser(userType);
 
-      // Authenticate with Supabase
-      const { user, session } = await authenticateTestUser(userType);
-
-      // Store current user ID in secure storage
-      await storeCurrentUser(user.id);
-
-      // Navigate to map with user context
-      navigation.navigate('Map', {
-        userType,
-        userId: user.id,
-        email: user.email
-      });
+      if (result.success) {
+        navigation.replace('Map', {
+          userType: userType,
+          userId: result.userId,
+          email: result.email
+        });
+      } else {
+        Alert.alert('Authentication Error', result.error);
+      }
     } catch (error) {
       console.error('Authentication failed:', error);
-      Alert.alert('Authentication Error', error.message);
-    } finally {
-      setLoading(false);
+      Alert.alert('Error', 'Authentication failed');
     }
   };
 
@@ -63,62 +51,31 @@ export default function UserSelectionScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Green Box</Text>
+      <Text style={styles.title}>Development Mode</Text>
+      <Text style={styles.subtitle}>Select a test user account</Text>
 
-      {/* Sign In/Sign Up Toggle */}
-      <View style={styles.toggleContainer}>
+      <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={[styles.toggleButton, !isSignUp && styles.toggleButtonActive]}
-          onPress={() => setIsSignUp(false)}
+          style={[styles.userButton, styles.userAButton]}
+          onPress={() => handleAuth('userA')}
         >
-          <Text style={[styles.toggleText, !isSignUp && styles.toggleTextActive]}>
-            Sign In
-          </Text>
+          <Text style={styles.userButtonText}>Login as User A</Text>
+          <Text style={styles.userEmail}>dan@dkdev.io</Text>
         </TouchableOpacity>
+
         <TouchableOpacity
-          style={[styles.toggleButton, isSignUp && styles.toggleButtonActive]}
-          onPress={() => setIsSignUp(true)}
+          style={[styles.userButton, styles.userBButton]}
+          onPress={() => handleAuth('userB')}
         >
-          <Text style={[styles.toggleText, isSignUp && styles.toggleTextActive]}>
-            Sign Up
-          </Text>
+          <Text style={styles.userButtonText}>Login as User B</Text>
+          <Text style={styles.userEmail}>dpeterkelly@gmail.com</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Input Fields */}
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        autoComplete="email"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        autoComplete="password"
-      />
-
-      {/* Main Action Button */}
-      <TouchableOpacity
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleAuth}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>
-            {isSignUp ? 'Create Account' : 'Sign In'}
-          </Text>
-        )}
-      </TouchableOpacity>
+      <Text style={styles.note}>
+        These are test accounts for development only.
+        Location sharing is fully encrypted between users.
+      </Text>
     </View>
   );
 }
@@ -129,13 +86,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    padding: 30,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 8,
     color: '#2e7d32',
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
@@ -143,68 +100,40 @@ const styles = StyleSheet.create({
     marginBottom: 40,
     textAlign: 'center',
   },
-  toggleContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    padding: 4,
+  buttonContainer: {
+    width: '100%',
+    gap: 20,
     marginBottom: 30,
-    width: '80%',
   },
-  toggleButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 6,
+  userButton: {
+    padding: 20,
+    borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 2,
   },
-  toggleButtonActive: {
-    backgroundColor: '#2e7d32',
+  userAButton: {
+    backgroundColor: '#e8f5e8',
+    borderColor: '#2e7d32',
   },
-  toggleText: {
-    fontSize: 14,
+  userBButton: {
+    backgroundColor: '#e3f2fd',
+    borderColor: '#1976d2',
+  },
+  userButtonText: {
+    fontSize: 18,
     fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 14,
     color: '#666',
   },
-  toggleTextActive: {
-    color: '#fff',
-  },
-  input: {
-    width: '80%',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    marginBottom: 15,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
-  button: {
-    backgroundColor: '#2e7d32',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 8,
-    marginBottom: 20,
-    width: '80%',
-    minHeight: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    backgroundColor: '#81c784',
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  phaseNote: {
+  note: {
     fontSize: 12,
     color: '#999',
-    fontStyle: 'italic',
-    marginTop: 10,
+    textAlign: 'center',
+    lineHeight: 16,
   },
   loadingText: {
     marginTop: 15,

@@ -84,6 +84,37 @@ export async function signOut() {
 }
 
 /**
+ * Authenticate test users for development mode
+ */
+export async function authenticateUser(userType) {
+  try {
+    const users = {
+      userA: {
+        id: 'fb5aea38-4530-42d8-9c1f-6851791dcd8b',
+        email: 'dan@dkdev.io'
+      },
+      userB: {
+        id: '5a86c18f-f296-4bab-a848-8e5a101b69c5',
+        email: 'dpeterkelly@gmail.com'
+      }
+    };
+
+    const user = users[userType];
+    if (!user) {
+      return { success: false, error: 'Invalid user type' };
+    }
+
+    return {
+      success: true,
+      userId: user.id,
+      email: user.email
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
  * Get friend's public key from the users table
  * @param {string} friendUserId - The user ID of the friend
  */
@@ -254,13 +285,7 @@ export async function processIncomingLocation(encryptedLocationRow, currentUserT
     // Get sender information
     const senderInfo = await getFriendPublicKey(encryptedLocationRow.sender_id);
 
-    console.log('🔓 Successfully decrypted location from:', senderInfo.name);
-    console.log('📍 Location data:', {
-      lat: decryptedLocation.latitude,
-      lon: decryptedLocation.longitude,
-      accuracy: decryptedLocation.accuracy,
-      timestamp: new Date(decryptedLocation.timestamp).toISOString(),
-    });
+    // Successfully decrypted location (removed console.log for security)
 
     return {
       ...decryptedLocation,

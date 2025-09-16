@@ -84,7 +84,7 @@ export async function decryptLocationData(encryptedPayload, privateKey, publicKe
     const jsonString = sodium.to_string(decryptedMessage);
     const locationData = JSON.parse(jsonString);
 
-    console.log('Location decrypted successfully');
+    // Location decrypted successfully (removed console.log for security)
     return {
       latitude: locationData.lat,
       longitude: locationData.lon,

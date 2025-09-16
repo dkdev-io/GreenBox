@@ -43,16 +43,16 @@
 - [x] **0.24** Send encrypted location to encrypted_locations table - Complete - Session 2
 
 ### Real-time Reception & Decryption
-- [ ] **0.25** Set up Supabase Realtime client
-- [ ] **0.26** Subscribe to INSERT events on encrypted_locations for current user
-- [ ] **0.27** Create decryption function (Base64 payload → private key → location JSON)
-- [ ] **0.28** Log decrypted location data to console
+- [x] **0.25** Set up Supabase Realtime client - Complete - Session 3
+- [x] **0.26** Subscribe to INSERT events on encrypted_locations for current user - Complete - Session 3
+- [x] **0.27** Create decryption function (Base64 payload → private key → location JSON) - Complete - Session 3
+- [x] **0.28** Log decrypted location data to console - Complete - Session 3
 
 ### Basic Map Integration
-- [ ] **0.29** Create basic map screen using react-native-maps
-- [ ] **0.30** Plot user's own current location as blue dot
-- [ ] **0.31** Plot friend's received location as red dot
-- [ ] **0.32** Update friend's marker position in real-time
+- [x] **0.29** Create basic map screen using react-native-maps - Complete - Session 3
+- [x] **0.30** Plot user's own current location as blue dot - Complete - Session 3
+- [x] **0.31** Plot friend's received location as red dot - Complete - Session 3
+- [x] **0.32** Update friend's marker position in real-time - Complete - Session 3
 
 ### Phase 0 Security Audit
 - [ ] **0.33** Verify private keys are stored in device keychain/keystore

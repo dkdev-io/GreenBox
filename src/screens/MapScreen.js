@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
+import MapView, { Marker } from '../components/Map';
 import { getPrivateKey, getCurrentUserId } from '../services/secureStorage';
 import { requestLocationPermissions, checkLocationPermissions, getCurrentLocation, startLocationTracking, stopLocationTracking } from '../services/locationService';
 import { getFriendPublicKey, getFriendUserId, sendEncryptedLocation, subscribeToLocationUpdates, unsubscribeFromLocationUpdates, processIncomingLocation } from '../services/supabase';
@@ -103,7 +104,7 @@ export default function MapScreen({ route }) {
       // Start tracking location changes
       const subscription = await startLocationTracking(async (newLocation) => {
         setCurrentLocation(newLocation);
-        console.log('Location updated:', newLocation);
+        console.log('Location updated successfully');
 
         // Encrypt and send location to friend (if we have their public key)
         if (friendData?.publicKey) {
@@ -157,92 +158,72 @@ export default function MapScreen({ route }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Map Screen</Text>
-      <Text style={styles.subtitle}>
-        Logged in as: {userType === 'userA' ? 'User A' : 'User B'}
-      </Text>
-      <Text style={styles.email}>Email: {email}</Text>
-      <Text style={styles.userId}>User ID: {userId}</Text>
-      <Text style={styles.keyStatus}>
-        Private Key: {privateKey ? '✓ Loaded from secure storage' : '✗ Not found'}
-      </Text>
-
-      <Text style={styles.keyStatus}>
-        Friend's Public Key: {friendData?.publicKey ? '✓ Loaded from Supabase' : '✗ Not found'}
-      </Text>
-
-      {friendData && (
-        <Text style={styles.friendInfo}>
-          Friend: {friendData.name || 'Unknown'}
+      {/* Status Header */}
+      <View style={styles.statusHeader}>
+        <Text style={styles.userLabel}>
+          {userType === 'userA' ? 'User A' : 'User B'}
         </Text>
-      )}
-
-      {/* Location Permission Status */}
-      <Text style={styles.permissionStatus}>
-        Location Permission: {
-          locationPermission?.granted
-            ? '✓ Granted'
-            : locationPermission === null
-              ? 'Checking...'
-              : '✗ Denied'
-        }
-      </Text>
+        <Text style={styles.connectionStatus}>
+          {realtimeSubscription ? '🟢' : '🔴'}
+        </Text>
+      </View>
 
       {/* Request Permission Button */}
       {locationPermission && !locationPermission.granted && (
-        <TouchableOpacity style={styles.permissionButton} onPress={requestPermissions}>
-          <Text style={styles.permissionButtonText}>Grant Location Access</Text>
-        </TouchableOpacity>
+        <View style={styles.permissionOverlay}>
+          <TouchableOpacity style={styles.permissionButton} onPress={requestPermissions}>
+            <Text style={styles.permissionButtonText}>Grant Location Access</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
-      {/* Current Location Display */}
+      {/* Map Component */}
       {currentLocation && (
-        <View style={styles.locationContainer}>
-          <Text style={styles.locationTitle}>Current Location:</Text>
-          <Text style={styles.locationText}>
-            Lat: {currentLocation.latitude.toFixed(6)}
-          </Text>
-          <Text style={styles.locationText}>
-            Lng: {currentLocation.longitude.toFixed(6)}
-          </Text>
-          <Text style={styles.locationText}>
-            Accuracy: {currentLocation.accuracy?.toFixed(1)}m
-          </Text>
-          <Text style={styles.locationText}>
-            Updated: {new Date(currentLocation.timestamp).toLocaleTimeString()}
-          </Text>
-        </View>
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: currentLocation.latitude,
+            longitude: currentLocation.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }}
+          showsUserLocation={false}
+          showsMyLocationButton={false}
+        >
+          {/* User's Current Location - Blue Dot */}
+          <Marker
+            key={`user-current-${currentLocation.timestamp}`}
+            coordinate={{
+              latitude: currentLocation.latitude,
+              longitude: currentLocation.longitude,
+            }}
+            title="You"
+            description="Your current location"
+            pinColor="blue"
+          />
+
+          {/* Friend's Most Recent Location - Red Dot */}
+          {receivedLocations.length > 0 && (
+            <Marker
+              key={`friend-current-${receivedLocations[0].timestamp}`}
+              coordinate={{
+                latitude: receivedLocations[0].latitude,
+                longitude: receivedLocations[0].longitude,
+              }}
+              title={receivedLocations[0].senderName || 'Friend'}
+              description={`Updated: ${new Date(receivedLocations[0].timestamp).toLocaleTimeString()}`}
+              pinColor="red"
+            />
+          )}
+        </MapView>
       )}
 
-      {/* Real-time Subscription Status */}
-      <Text style={styles.subscriptionStatus}>
-        Real-time Updates: {realtimeSubscription ? '🟢 Connected' : '🔴 Disconnected'}
-      </Text>
-
-      {/* Received Locations Display */}
-      {receivedLocations.length > 0 && (
-        <View style={styles.receivedLocationsContainer}>
-          <Text style={styles.receivedLocationsTitle}>Received Locations:</Text>
-          {receivedLocations.map((location, index) => (
-            <View key={`${location.senderId}-${location.timestamp}-${index}`} style={styles.receivedLocationItem}>
-              <Text style={styles.receivedLocationSender}>From: {location.senderName}</Text>
-              <Text style={styles.receivedLocationCoords}>
-                {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
-              </Text>
-              <Text style={styles.receivedLocationTime}>
-                {new Date(location.timestamp).toLocaleTimeString()}
-              </Text>
-              <Text style={styles.receivedLocationAccuracy}>
-                Accuracy: {location.accuracy?.toFixed(1)}m
-              </Text>
-            </View>
-          ))}
+      {!currentLocation && locationPermission?.granted && (
+        <View style={styles.loadingMap}>
+          <ActivityIndicator size="large" color="#2e7d32" />
+          <Text style={styles.loadingText}>Getting your location...</Text>
         </View>
       )}
-
-      <Text style={styles.placeholder}>
-        Map component will be implemented in task 0.29
-      </Text>
     </View>
   );
 }
@@ -251,139 +232,57 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  statusHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
+    padding: 15,
+    backgroundColor: '#2e7d32',
+    paddingTop: 50,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#2e7d32',
-  },
-  subtitle: {
+  userLabel: {
     fontSize: 18,
-    color: '#666',
-    marginBottom: 10,
-  },
-  email: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
-  },
-  userId: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 10,
-    fontFamily: 'monospace',
-  },
-  keyStatus: {
-    fontSize: 14,
-    color: '#2e7d32',
-    marginBottom: 10,
     fontWeight: 'bold',
+    color: '#fff',
   },
-  friendInfo: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 10,
+  connectionStatus: {
+    fontSize: 16,
   },
-  permissionStatus: {
-    fontSize: 14,
-    color: '#2e7d32',
-    marginBottom: 10,
-    fontWeight: 'bold',
+  permissionOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
   },
   permissionButton: {
     backgroundColor: '#ff9800',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 6,
-    marginBottom: 15,
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 8,
   },
   permissionButtonText: {
     color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  locationContainer: {
-    backgroundColor: '#f5f5f5',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 15,
-    width: '90%',
-  },
-  locationTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#2e7d32',
   },
-  locationText: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 2,
-    fontFamily: 'monospace',
+  map: {
+    flex: 1,
   },
-  placeholder: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-    fontStyle: 'italic',
-    marginTop: 20,
+  loadingMap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
   },
   loadingText: {
     marginTop: 15,
     fontSize: 16,
     color: '#666',
-  },
-  subscriptionStatus: {
-    fontSize: 14,
-    color: '#2e7d32',
-    marginBottom: 15,
-    fontWeight: 'bold',
-  },
-  receivedLocationsContainer: {
-    backgroundColor: '#e8f5e8',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 15,
-    width: '90%',
-    maxHeight: 200,
-  },
-  receivedLocationsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#2e7d32',
-  },
-  receivedLocationItem: {
-    backgroundColor: '#fff',
-    padding: 10,
-    borderRadius: 6,
-    marginBottom: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#4caf50',
-  },
-  receivedLocationSender: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#2e7d32',
-    marginBottom: 2,
-  },
-  receivedLocationCoords: {
-    fontSize: 11,
-    color: '#666',
-    fontFamily: 'monospace',
-    marginBottom: 2,
-  },
-  receivedLocationTime: {
-    fontSize: 10,
-    color: '#999',
-    marginBottom: 2,
-  },
-  receivedLocationAccuracy: {
-    fontSize: 10,
-    color: '#999',
   },
 });
