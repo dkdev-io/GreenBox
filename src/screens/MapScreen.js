@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import { getPrivateKey, getCurrentUserId } from '../services/secureStorage';
 import { requestLocationPermissions, checkLocationPermissions, getCurrentLocation, startLocationTracking, stopLocationTracking } from '../services/locationService';
-import { getFriendPublicKey, getFriendUserId, sendEncryptedLocation } from '../services/supabase';
+import { getFriendPublicKey, getFriendUserId, sendEncryptedLocation, subscribeToLocationUpdates, unsubscribeFromLocationUpdates, processIncomingLocation } from '../services/supabase';
 import { encryptLocationForFriend } from '../services/encryptionService';
 
 export default function MapScreen({ route }) {
@@ -13,6 +13,8 @@ export default function MapScreen({ route }) {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [locationSubscription, setLocationSubscription] = useState(null);
   const [friendData, setFriendData] = useState(null);
+  const [realtimeSubscription, setRealtimeSubscription] = useState(null);
+  const [receivedLocations, setReceivedLocations] = useState([]);
 
   useEffect(() => {
     loadUserData();
@@ -20,6 +22,10 @@ export default function MapScreen({ route }) {
       // Cleanup location tracking on unmount
       if (locationSubscription) {
         stopLocationTracking(locationSubscription);
+      }
+      // Cleanup real-time subscription on unmount
+      if (realtimeSubscription) {
+        unsubscribeFromLocationUpdates(realtimeSubscription);
       }
     };
   }, [userId]);
@@ -42,11 +48,37 @@ export default function MapScreen({ route }) {
         setFriendData(friend);
       }
 
+      // Set up real-time subscription for incoming locations
+      if (userId) {
+        setupRealtimeSubscription();
+      }
+
     } catch (error) {
       console.error('Failed to load user data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const setupRealtimeSubscription = () => {
+    console.log('🔄 Setting up real-time subscription for user:', userId);
+
+    const subscription = subscribeToLocationUpdates(userId, async (encryptedLocationRow) => {
+      try {
+        console.log('📨 Received encrypted location message:', encryptedLocationRow);
+
+        // Process and decrypt the incoming location
+        const decryptedLocation = await processIncomingLocation(encryptedLocationRow, userType);
+
+        // Add to received locations list (for display)
+        setReceivedLocations(prev => [decryptedLocation, ...prev.slice(0, 4)]); // Keep last 5
+
+      } catch (error) {
+        console.error('Failed to process incoming location:', error);
+      }
+    });
+
+    setRealtimeSubscription(subscription);
   };
 
   const requestPermissions = async () => {
@@ -182,6 +214,32 @@ export default function MapScreen({ route }) {
         </View>
       )}
 
+      {/* Real-time Subscription Status */}
+      <Text style={styles.subscriptionStatus}>
+        Real-time Updates: {realtimeSubscription ? '🟢 Connected' : '🔴 Disconnected'}
+      </Text>
+
+      {/* Received Locations Display */}
+      {receivedLocations.length > 0 && (
+        <View style={styles.receivedLocationsContainer}>
+          <Text style={styles.receivedLocationsTitle}>Received Locations:</Text>
+          {receivedLocations.map((location, index) => (
+            <View key={`${location.senderId}-${location.timestamp}-${index}`} style={styles.receivedLocationItem}>
+              <Text style={styles.receivedLocationSender}>From: {location.senderName}</Text>
+              <Text style={styles.receivedLocationCoords}>
+                {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
+              </Text>
+              <Text style={styles.receivedLocationTime}>
+                {new Date(location.timestamp).toLocaleTimeString()}
+              </Text>
+              <Text style={styles.receivedLocationAccuracy}>
+                Accuracy: {location.accuracy?.toFixed(1)}m
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
       <Text style={styles.placeholder}>
         Map component will be implemented in task 0.29
       </Text>
@@ -278,5 +336,54 @@ const styles = StyleSheet.create({
     marginTop: 15,
     fontSize: 16,
     color: '#666',
+  },
+  subscriptionStatus: {
+    fontSize: 14,
+    color: '#2e7d32',
+    marginBottom: 15,
+    fontWeight: 'bold',
+  },
+  receivedLocationsContainer: {
+    backgroundColor: '#e8f5e8',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 15,
+    width: '90%',
+    maxHeight: 200,
+  },
+  receivedLocationsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#2e7d32',
+  },
+  receivedLocationItem: {
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#4caf50',
+  },
+  receivedLocationSender: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#2e7d32',
+    marginBottom: 2,
+  },
+  receivedLocationCoords: {
+    fontSize: 11,
+    color: '#666',
+    fontFamily: 'monospace',
+    marginBottom: 2,
+  },
+  receivedLocationTime: {
+    fontSize: 10,
+    color: '#999',
+    marginBottom: 2,
+  },
+  receivedLocationAccuracy: {
+    fontSize: 10,
+    color: '#999',
   },
 });

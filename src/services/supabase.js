@@ -22,8 +22,8 @@ export const TEST_USERS = {
   },
   userB: {
     id: '12d8f2cb-cc72-4f8d-a0dc-500d5766bc70',
-    email: 'test-user-b@dkdev.io',
-    privateKey: 'J4s8jnIrLM4FpGXutFB7DdErfN7vdZy8DdFaeuWAdKU',
+    email: 'dpeterkelly@gmail.com',
+    privateKey: 'Ew5xn3c0EakdfjpMkatRQCsf6DnJOIPfjgMV82Of9wg',
   },
 };
 
@@ -111,6 +111,30 @@ export async function getFriendPublicKey(friendUserId) {
 }
 
 /**
+ * Get the current user's public key from the users table
+ * @param {string} userId - The current user's ID
+ */
+export async function getUserPublicKey(userId) {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('public_key')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching user public key:', error);
+      throw error;
+    }
+
+    return data.public_key;
+  } catch (error) {
+    console.error('Failed to get user public key:', error);
+    throw error;
+  }
+}
+
+/**
  * Get the friend user ID for the current user (for Phase 0 testing)
  * In Phase 0, User A's friend is User B and vice versa
  */
@@ -148,6 +172,105 @@ export async function sendEncryptedLocation(senderId, recipientId, encryptedPayl
 
   } catch (error) {
     console.error('Failed to send encrypted location:', error);
+    throw error;
+  }
+}
+
+/**
+ * Subscribe to real-time location updates for the current user
+ * @param {string} userId - The current user's ID
+ * @param {function} onLocationReceived - Callback function to handle new location data
+ * @returns {object} Subscription object that can be used to unsubscribe
+ */
+export function subscribeToLocationUpdates(userId, onLocationReceived) {
+  console.log('Setting up real-time subscription for user:', userId);
+
+  const subscription = supabase
+    .channel('encrypted_locations')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'encrypted_locations',
+        filter: `recipient_id=eq.${userId}`,
+      },
+      (payload) => {
+        console.log('Real-time location update received:', payload);
+        onLocationReceived(payload.new);
+      }
+    )
+    .subscribe((status) => {
+      console.log('Subscription status:', status);
+    });
+
+  return subscription;
+}
+
+/**
+ * Unsubscribe from location updates
+ * @param {object} subscription - The subscription object to unsubscribe from
+ */
+export function unsubscribeFromLocationUpdates(subscription) {
+  if (subscription) {
+    console.log('Unsubscribing from location updates');
+    supabase.removeChannel(subscription);
+  }
+}
+
+/**
+ * Process an incoming encrypted location message
+ * @param {object} encryptedLocationRow - Row from encrypted_locations table
+ * @param {string} currentUserType - Current user type ('userA' or 'userB')
+ * @returns {object} Decrypted location data with sender info
+ */
+export async function processIncomingLocation(encryptedLocationRow, currentUserType) {
+  try {
+    const { decryptLocationData } = await import('./encryptionService.js');
+    const { getSecureValue } = await import('./secureStorage.js');
+
+    // Get current user info
+    const currentUser = TEST_USERS[currentUserType];
+    if (!currentUser) {
+      throw new Error(`Invalid user type: ${currentUserType}`);
+    }
+
+    // Get private key from secure storage
+    const privateKey = await getSecureValue(`privateKey_${currentUser.id}`);
+    if (!privateKey) {
+      throw new Error('Private key not found in secure storage');
+    }
+
+    // Get current user's public key
+    const publicKey = await getUserPublicKey(currentUser.id);
+
+    // Decrypt the location data
+    const decryptedLocation = await decryptLocationData(
+      encryptedLocationRow.payload,
+      privateKey,
+      publicKey
+    );
+
+    // Get sender information
+    const senderInfo = await getFriendPublicKey(encryptedLocationRow.sender_id);
+
+    console.log('🔓 Successfully decrypted location from:', senderInfo.name);
+    console.log('📍 Location data:', {
+      lat: decryptedLocation.latitude,
+      lon: decryptedLocation.longitude,
+      accuracy: decryptedLocation.accuracy,
+      timestamp: new Date(decryptedLocation.timestamp).toISOString(),
+    });
+
+    return {
+      ...decryptedLocation,
+      senderId: encryptedLocationRow.sender_id,
+      senderName: senderInfo.name,
+      receivedAt: encryptedLocationRow.created_at,
+    };
+
+  } catch (error) {
+    console.error('❌ Failed to process incoming location:', error);
     throw error;
   }
 }
