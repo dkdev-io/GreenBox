@@ -5,29 +5,29 @@
 **Goal**: Prove entire E2EE location sharing concept with hardcoded users
 
 ### Environment & Security Infrastructure Setup
-- [ ] **0.0** Set up environment configuration library (react-native-config) and create .env.development and .env.production files
-- [ ] **0.1** Create separate Supabase projects for development and production environments
+- [x] **0.0** Set up environment configuration library (react-native-config) and create .env.development and .env.production files - Complete - Session 1
+- [x] **0.1** Create separate Supabase projects for development and production environments - Complete - Session 1
 
 ### Backend Foundation
-- [ ] **0.2** Set up Supabase development project and obtain API keys
-- [ ] **0.3** Create database schema (users, friendships, encrypted_locations tables)
-- [ ] **0.4** Implement Row Level Security (RLS) policies for all tables
-- [ ] **0.5** Create Edge Function for automatic data purging (10-minute retention)
-- [ ] **0.6** Test RLS policies with manual data insertion via Supabase dashboard
+- [x] **0.2** Set up Supabase development project and obtain API keys - Complete - Session 1
+- [x] **0.3** Create database schema (users, friendships, encrypted_locations tables) - Complete - Session 1
+- [x] **0.4** Implement Row Level Security (RLS) policies for all tables - Complete - Session 1
+- [x] **0.5** Create Edge Function for automatic data purging (10-minute retention) - Complete - Session 1
+- [x] **0.6** Test RLS policies with manual data insertion via Supabase dashboard - Complete - Session 1
 
 ### Manual Test Data Setup
-- [ ] **0.7** Manually create User A in Supabase Auth (test-user-a@example.com)
-- [ ] **0.8** Manually create User B in Supabase Auth (test-user-b@example.com)
-- [ ] **0.9** Generate public/private key pairs for both users (using libsodium)
-- [ ] **0.10** Upload public keys to users table for both test users
-- [ ] **0.11** Manually insert active friendship row linking User A and User B
+- [x] **0.7** Manually create User A in Supabase Auth (dan@dkdev.io) - Complete - Session 1
+- [x] **0.8** Manually create User B in Supabase Auth (test-user-b@dkdev.io) - Complete - Session 1
+- [x] **0.9** Generate public/private key pairs for both users (using libsodium) - Complete - Session 1
+- [x] **0.10** Upload public keys to users table for both test users - Complete - Session 1
+- [x] **0.11** Manually insert active friendship row linking User A and User B - Complete - Session 1
 
 ### Basic React Native App Setup
-- [ ] **0.12** Initialize React Native project with Expo/CLI
-- [ ] **0.13** Configure project to use port 3010
-- [ ] **0.14** Install core dependencies (react-native-maps, @supabase/supabase-js)
-- [ ] **0.15** Install cryptography library (sodium-react-native-lite)
-- [ ] **0.15a** Install and configure secure storage library (react-native-keychain or expo-secure-store)
+- [x] **0.12** Initialize React Native project with Expo/CLI - Complete - Session 1
+- [x] **0.13** Configure project to use port 3010 - Complete - Session 1
+- [x] **0.14** Install core dependencies (react-native-maps, @supabase/supabase-js) - Complete - Session 1
+- [x] **0.15** Install cryptography library (react-native-libsodium) - Complete - Session 1
+- [x] **0.15a** Install and configure secure storage library (expo-secure-store) - Complete - Session 1
 - [ ] **0.16** Create basic app structure with navigation
 
 ### Hardcoded User Selection
