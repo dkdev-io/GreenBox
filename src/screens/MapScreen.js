@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import MapView, { Marker } from '../components/Map';
-import { getPrivateKey, getCurrentUserId } from '../services/secureStorage';
+import { useAuth } from '../contexts/AuthContext';
+import { getPrivateKey } from '../services/secureStorage';
 import { requestLocationPermissions, checkLocationPermissions, getCurrentLocation, startLocationTracking, stopLocationTracking } from '../services/locationService';
 import { getFriendPublicKey, getFriendUserId, sendEncryptedLocation, subscribeToLocationUpdates, unsubscribeFromLocationUpdates, processIncomingLocation } from '../services/supabase';
 import { encryptLocationForFriend } from '../services/encryptionService';
 
-export default function MapScreen({ route }) {
-  const { userType, userId, email } = route.params || {};
+export default function MapScreen() {
+  const { user, signOut } = useAuth();
+  const userId = user?.id;
   const [privateKey, setPrivateKey] = useState(null);
   const [loading, setLoading] = useState(true);
   const [locationPermission, setLocationPermission] = useState(null);
@@ -42,11 +44,17 @@ export default function MapScreen({ route }) {
       const permissionStatus = await checkLocationPermissions();
       setLocationPermission(permissionStatus);
 
-      // Fetch friend's public key (for Phase 0 testing)
-      if (userType) {
-        const friendUserId = getFriendUserId(userType);
-        const friend = await getFriendPublicKey(friendUserId);
-        setFriendData(friend);
+      // For Phase 1, we'll temporarily use hardcoded friend setup until friendship system is built
+      // This allows us to test OAuth while maintaining E2EE functionality
+      if (userId) {
+        // Try to find a test friend (for development)
+        const testUsers = ['a84f4f11-bb4b-4faa-9b6e-2ed23de0eb98', '7b2c3e8a-1234-4567-8901-234567890abc'];
+        const friendUserId = testUsers.find(id => id !== userId);
+
+        if (friendUserId) {
+          const friend = await getFriendPublicKey(friendUserId);
+          setFriendData(friend);
+        }
       }
 
       // Set up real-time subscription for incoming locations
@@ -161,11 +169,16 @@ export default function MapScreen({ route }) {
       {/* Status Header */}
       <View style={styles.statusHeader}>
         <Text style={styles.userLabel}>
-          {userType === 'userA' ? 'User A' : 'User B'}
+          {user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Green Box User'}
         </Text>
-        <Text style={styles.connectionStatus}>
-          {realtimeSubscription ? '🟢' : '🔴'}
-        </Text>
+        <View style={styles.headerRight}>
+          <Text style={styles.connectionStatus}>
+            {realtimeSubscription ? '🟢' : '🔴'}
+          </Text>
+          <TouchableOpacity style={styles.signOutButton} onPress={signOut}>
+            <Text style={styles.signOutText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Request Permission Button */}
@@ -245,9 +258,26 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
+    flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   connectionStatus: {
     fontSize: 16,
+  },
+  signOutButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  signOutText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   permissionOverlay: {
     position: 'absolute',

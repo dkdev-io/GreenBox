@@ -55,10 +55,10 @@
 - [x] **0.32** Update friend's marker position in real-time - Complete - Session 3
 
 ### Phase 0 Security Audit
-- [ ] **0.33** Verify private keys are stored in device keychain/keystore
-- [ ] **0.34** Test RLS policies: User A cannot read User B's incoming messages
-- [ ] **0.35** Confirm no decrypted location data appears in logs/storage
-- [ ] **0.36** Manual testing: Verify end-to-end location sharing between devices
+- [x] **0.33** Verify private keys are stored in device keychain/keystore - Complete
+- [x] **0.34** Test RLS policies: User A cannot read User B's incoming messages - Complete
+- [x] **0.35** Confirm no decrypted location data appears in logs/storage - Complete
+- [x] **0.36** Manual testing: Verify end-to-end location sharing between devices - Complete
 
 ---
 
@@ -66,17 +66,17 @@
 **Goal**: Replace hardcoded setup with proper OAuth and dynamic user creation
 
 ### OAuth Implementation
-- [ ] **1.1** Configure Apple Sign-In provider in Supabase
-- [ ] **1.2** Configure Google Sign-In provider in Supabase
-- [ ] **1.3** Create authentication screens (landing, login)
-- [ ] **1.4** Implement Apple Sign-In flow
-- [ ] **1.5** Implement Google Sign-In flow
-- [ ] **1.6** Handle authentication state management
+- [x] **1.1** Configure Apple Sign-In provider in Supabase - Complete - Session 4
+- [x] **1.2** Configure Google Sign-In provider in Supabase - Complete - Session 4
+- [x] **1.3** Create authentication screens (landing, login) - Complete - Session 4
+- [x] **1.4** Implement Apple Sign-In flow - Complete - Session 4
+- [x] **1.5** Implement Google Sign-In flow - Complete - Session 4
+- [x] **1.6** Handle authentication state management - Complete - Session 4
 
 ### Dynamic Key Generation
-- [ ] **1.7** Generate key pairs on first login
-- [ ] **1.8** Store private key in secure device storage
-- [ ] **1.9** Upload public key to users table
+- [x] **1.7** Generate key pairs on first login - Complete - Session 4
+- [x] **1.8** Store private key in secure device storage - Complete - Session 4
+- [x] **1.9** Upload public key to users table - Complete - Session 4
 - [ ] **1.10** Handle key regeneration for new devices
 
 ### Onboarding Flow

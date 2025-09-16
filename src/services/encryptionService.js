@@ -1,4 +1,6 @@
 import sodium from 'react-native-libsodium';
+import { supabase } from './supabase';
+import { storeSecurely, getSecurely } from './secureStorage';
 
 // Initialize libsodium
 let isReady = false;
@@ -116,5 +118,66 @@ export async function generateKeyPair() {
   } catch (error) {
     console.error('Key generation failed:', error);
     throw new Error('Failed to generate keypair');
+  }
+}
+
+/**
+ * Initialize user keys on first sign-in
+ * Checks if user already has keys, if not generates and stores them
+ * @param {object} user - Supabase user object
+ */
+export async function initializeUserKeys(user) {
+  try {
+    const userId = user.id;
+    const keyName = `private_key_${userId}`;
+
+    // Check if user already has a private key stored
+    const existingPrivateKey = await getSecurely(keyName);
+
+    if (existingPrivateKey) {
+      console.log('User already has keys initialized');
+      return;
+    }
+
+    // Check if user record exists in database
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('public_key')
+      .eq('id', userId)
+      .single();
+
+    if (existingUser?.public_key) {
+      console.log('User has public key in database but no local private key');
+      // This shouldn't happen in normal flow, but could happen if user reinstalled app
+      throw new Error('Key mismatch: public key exists but private key missing');
+    }
+
+    // Generate new key pair
+    console.log('Generating new key pair for user');
+    const keyPair = await generateKeyPair();
+
+    // Store private key securely on device
+    await storeSecurely(keyName, keyPair.privateKey);
+
+    // Create or update user record with public key and profile info
+    const { error: upsertError } = await supabase
+      .from('users')
+      .upsert({
+        id: userId,
+        public_key: keyPair.publicKey,
+        full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+        avatar_url: user.user_metadata?.avatar_url || null,
+        created_at: new Date().toISOString(),
+      });
+
+    if (upsertError) {
+      throw upsertError;
+    }
+
+    console.log('User keys initialized successfully');
+
+  } catch (error) {
+    console.error('Failed to initialize user keys:', error);
+    throw new Error('Failed to initialize user keys');
   }
 }

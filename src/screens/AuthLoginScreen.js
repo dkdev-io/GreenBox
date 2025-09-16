@@ -28,8 +28,7 @@ export default function AuthLoginScreen({ navigation }) {
         throw error;
       }
 
-      // Navigate to app on success
-      navigation.replace('Map');
+      // User is now signed in, auth state will handle navigation
 
     } catch (error) {
       if (error.code === 'ERR_CANCELED') {
@@ -47,7 +46,7 @@ export default function AuthLoginScreen({ navigation }) {
       setLoading(true);
 
       const redirectUri = makeRedirectUri({
-        scheme: 'com.greenbox.app',
+        scheme: 'greenbox',
         path: 'auth',
       });
 
@@ -57,15 +56,28 @@ export default function AuthLoginScreen({ navigation }) {
       });
 
       if (result.type === 'success') {
-        // Handle the success response
-        const { url } = result;
-        // Extract tokens from URL and complete auth
-        // This would need proper URL parsing in production
-        navigation.replace('Map');
+        // Extract auth code from URL and exchange for session
+        const url = new URL(result.url);
+        const code = url.searchParams.get('code');
+
+        if (code) {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+
+          if (error) {
+            throw error;
+          }
+
+          // User is now signed in, auth state will handle navigation
+        } else {
+          throw new Error('No authorization code received');
+        }
+      } else if (result.type === 'cancel') {
+        // User canceled the flow
+        return;
       }
 
     } catch (error) {
-      Alert.alert('Sign In Error', error.message);
+      Alert.alert('Sign In Error', error.message || 'Failed to sign in with Google');
     } finally {
       setLoading(false);
     }
@@ -73,7 +85,7 @@ export default function AuthLoginScreen({ navigation }) {
 
   // For Phase 1 development, also provide the legacy user selection
   const handleLegacyAuth = () => {
-    navigation.replace('UserSelection');
+    navigation.navigate('UserSelection');
   };
 
   return (

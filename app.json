@@ -14,12 +14,14 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.greenbox.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Green Box needs location access to share your location with trusted friends.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Green Box needs background location access to keep sharing your location with friends when the app is not active."
       }
     },
     "android": {
+      "package": "com.greenbox.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -35,7 +37,8 @@
     },
     "scheme": "greenbox",
     "plugins": [
-      "expo-location"
+      "expo-location",
+      "expo-apple-authentication"
     ]
   }
 }
