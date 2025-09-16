@@ -28,19 +28,19 @@
 - [x] **0.14** Install core dependencies (react-native-maps, @supabase/supabase-js) - Complete - Session 1
 - [x] **0.15** Install cryptography library (react-native-libsodium) - Complete - Session 1
 - [x] **0.15a** Install and configure secure storage library (expo-secure-store) - Complete - Session 1
-- [ ] **0.16** Create basic app structure with navigation
+- [x] **0.16** Create basic app structure with navigation - Complete - Session 2
 
 ### Hardcoded User Selection
-- [ ] **0.17** Create simple user selection screen (button for "Login as User A" / "Login as User B")
-- [ ] **0.18** Implement hardcoded authentication using supabase.auth.setSession with manually generated JWTs for test users
-- [ ] **0.19** Store selected user ID and retrieve their private key from secure storage
+- [x] **0.17** Create simple user selection screen (button for "Login as User A" / "Login as User B") - Complete - Session 2
+- [x] **0.18** Implement hardcoded authentication using supabase.auth.setSession with manually generated JWTs for test users - Complete - Session 2
+- [x] **0.19** Store selected user ID and retrieve their private key from secure storage - Complete - Session 2
 
 ### Location Capture & Encryption
-- [ ] **0.20** Request location permissions (When In Use only for now)
-- [ ] **0.21** Implement basic location tracking (foreground only)
-- [ ] **0.22** Fetch friend's public key from Supabase users table
-- [ ] **0.23** Create encryption function (location JSON → friend's public key → Base64 payload)
-- [ ] **0.24** Send encrypted location to encrypted_locations table
+- [x] **0.20** Request location permissions (When In Use only for now) - Complete - Session 2
+- [x] **0.21** Implement basic location tracking (foreground only) - Complete - Session 2
+- [x] **0.22** Fetch friend's public key from Supabase users table - Complete - Session 2
+- [x] **0.23** Create encryption function (location JSON → friend's public key → Base64 payload) - Complete - Session 2
+- [x] **0.24** Send encrypted location to encrypted_locations table - Complete - Session 2
 
 ### Real-time Reception & Decryption
 - [ ] **0.25** Set up Supabase Realtime client
