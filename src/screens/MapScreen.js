@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import MapView, { Marker } from '../components/Map';
-import { useAuth } from '../contexts/AuthContext';
-import { getPrivateKey } from '../services/secureStorage';
+import { getPrivateKey, getCurrentUserId } from '../services/secureStorage';
 import { requestLocationPermissions, checkLocationPermissions, getCurrentLocation, startLocationTracking, stopLocationTracking } from '../services/locationService';
 import { getFriendPublicKey, getFriendUserId, sendEncryptedLocation, subscribeToLocationUpdates, unsubscribeFromLocationUpdates, processIncomingLocation } from '../services/supabase';
 import { encryptLocationForFriend } from '../services/encryptionService';
 
-export default function MapScreen() {
-  const { user, signOut } = useAuth();
-  const userId = user?.id;
+export default function MapScreen({ route }) {
+  const { userType, userId, email } = route.params || {};
   const [privateKey, setPrivateKey] = useState(null);
   const [loading, setLoading] = useState(true);
   const [locationPermission, setLocationPermission] = useState(null);
@@ -22,11 +20,9 @@ export default function MapScreen() {
   useEffect(() => {
     loadUserData();
     return () => {
-      // Cleanup location tracking on unmount
       if (locationSubscription) {
         stopLocationTracking(locationSubscription);
       }
-      // Cleanup real-time subscription on unmount
       if (realtimeSubscription) {
         unsubscribeFromLocationUpdates(realtimeSubscription);
       }
@@ -40,26 +36,25 @@ export default function MapScreen() {
         setPrivateKey(key);
       }
 
-      // Check location permissions
       const permissionStatus = await checkLocationPermissions();
       setLocationPermission(permissionStatus);
 
-      // For Phase 1, we'll temporarily use hardcoded friend setup until friendship system is built
-      // This allows us to test OAuth while maintaining E2EE functionality
-      if (userId) {
-        // Try to find a test friend (for development)
-        const testUsers = ['a84f4f11-bb4b-4faa-9b6e-2ed23de0eb98', '7b2c3e8a-1234-4567-8901-234567890abc'];
-        const friendUserId = testUsers.find(id => id !== userId);
-
-        if (friendUserId) {
+      if (userType) {
+        try {
+          const friendUserId = getFriendUserId(userType);
           const friend = await getFriendPublicKey(friendUserId);
           setFriendData(friend);
+        } catch (error) {
+          console.error('Failed to load friend data (non-critical):', error);
         }
       }
 
-      // Set up real-time subscription for incoming locations
       if (userId) {
-        setupRealtimeSubscription();
+        try {
+          setupRealtimeSubscription();
+        } catch (error) {
+          console.error('Failed to setup real-time subscription (non-critical):', error);
+        }
       }
 
     } catch (error) {
@@ -75,13 +70,8 @@ export default function MapScreen() {
     const subscription = subscribeToLocationUpdates(userId, async (encryptedLocationRow) => {
       try {
         console.log('📨 Received encrypted location message:', encryptedLocationRow);
-
-        // Process and decrypt the incoming location
         const decryptedLocation = await processIncomingLocation(encryptedLocationRow, userType);
-
-        // Add to received locations list (for display)
-        setReceivedLocations(prev => [decryptedLocation, ...prev.slice(0, 4)]); // Keep last 5
-
+        setReceivedLocations(prev => [decryptedLocation, ...prev.slice(0, 4)]);
       } catch (error) {
         console.error('Failed to process incoming location:', error);
       }
@@ -105,16 +95,13 @@ export default function MapScreen() {
 
   const startTracking = async () => {
     try {
-      // Get initial location
       const location = await getCurrentLocation();
       setCurrentLocation(location);
 
-      // Start tracking location changes
       const subscription = await startLocationTracking(async (newLocation) => {
         setCurrentLocation(newLocation);
         console.log('Location updated successfully');
 
-        // Encrypt and send location to friend (if we have their public key)
         if (friendData?.publicKey) {
           try {
             await encryptAndSendLocation(newLocation);
@@ -138,13 +125,8 @@ export default function MapScreen() {
         return;
       }
 
-      // Encrypt location data with friend's public key
       const encryptedPayload = await encryptLocationForFriend(locationData, friendData.publicKey);
-
-      // Get friend's user ID
       const friendUserId = getFriendUserId(userType);
-
-      // Send encrypted location to Supabase
       await sendEncryptedLocation(userId, friendUserId, encryptedPayload);
 
       console.log('Location encrypted and sent successfully');
@@ -166,22 +148,15 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Status Header */}
       <View style={styles.statusHeader}>
         <Text style={styles.userLabel}>
-          {user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'Green Box User'}
+          {userType === 'userA' ? 'User A' : 'User B'}
         </Text>
-        <View style={styles.headerRight}>
-          <Text style={styles.connectionStatus}>
-            {realtimeSubscription ? '🟢' : '🔴'}
-          </Text>
-          <TouchableOpacity style={styles.signOutButton} onPress={signOut}>
-            <Text style={styles.signOutText}>Sign Out</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.connectionStatus}>
+          {realtimeSubscription ? '🟢' : '🔴'}
+        </Text>
       </View>
 
-      {/* Request Permission Button */}
       {locationPermission && !locationPermission.granted && (
         <View style={styles.permissionOverlay}>
           <TouchableOpacity style={styles.permissionButton} onPress={requestPermissions}>
@@ -190,7 +165,6 @@ export default function MapScreen() {
         </View>
       )}
 
-      {/* Map Component */}
       {currentLocation && (
         <MapView
           style={styles.map}
@@ -203,7 +177,6 @@ export default function MapScreen() {
           showsUserLocation={false}
           showsMyLocationButton={false}
         >
-          {/* User's Current Location - Blue Dot */}
           <Marker
             key={`user-current-${currentLocation.timestamp}`}
             coordinate={{
@@ -215,7 +188,6 @@ export default function MapScreen() {
             pinColor="blue"
           />
 
-          {/* Friend's Most Recent Location - Red Dot */}
           {receivedLocations.length > 0 && (
             <Marker
               key={`friend-current-${receivedLocations[0].timestamp}`}
@@ -258,26 +230,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#fff',
-    flex: 1,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
   },
   connectionStatus: {
     fontSize: 16,
-  },
-  signOutButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  signOutText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
   },
   permissionOverlay: {
     position: 'absolute',
