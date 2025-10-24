@@ -6,6 +6,10 @@ import { useAuth } from '../contexts/AuthContext';
 import AuthLandingScreen from '../screens/AuthLandingScreen';
 import AuthLoginScreen from '../screens/AuthLoginScreen';
 import UserSelectionScreen from '../screens/UserSelectionScreen';
+import PermissionPrimerScreen from '../screens/PermissionPrimerScreen';
+import PermissionRequestScreen from '../screens/PermissionRequestScreen';
+import BackgroundPermissionPrimerScreen from '../screens/BackgroundPermissionPrimerScreen';
+import OnboardingCompleteScreen from '../screens/OnboardingCompleteScreen';
 import MapScreen from '../screens/MapScreen';
 
 const Stack = createStackNavigator();
@@ -34,6 +38,30 @@ function AuthStack() {
           headerShown: true, // Show header for dev mode
         }}
       />
+      <Stack.Screen
+        name="PermissionPrimer"
+        component={PermissionPrimerScreen}
+      />
+      <Stack.Screen
+        name="PermissionRequest"
+        component={PermissionRequestScreen}
+      />
+      <Stack.Screen
+        name="BackgroundPermissionPrimer"
+        component={BackgroundPermissionPrimerScreen}
+      />
+      <Stack.Screen
+        name="OnboardingComplete"
+        component={OnboardingCompleteScreen}
+      />
+      <Stack.Screen
+        name="Map"
+        component={MapScreen}
+        options={{
+          title: 'Green Box',
+          headerLeft: null, // Prevent back navigation from map
+        }}
+      />
     </Stack.Navigator>
   );
 }
@@ -58,13 +86,42 @@ function MainStack() {
 }
 
 export default function AppNavigator() {
-  const { user, loading } = useAuth();
+  const { user, loading, hasCompletedOnboarding } = useAuth();
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2e7d32" />
       </View>
+    );
+  }
+
+  // If user is authenticated but hasn't completed onboarding, show onboarding flow
+  if (user && !hasCompletedOnboarding) {
+    return (
+      <NavigationContainer>
+        <Stack.Navigator
+          initialRouteName="PermissionPrimer"
+          screenOptions={{ headerShown: false }}
+        >
+          <Stack.Screen
+            name="PermissionPrimer"
+            component={PermissionPrimerScreen}
+          />
+          <Stack.Screen
+            name="PermissionRequest"
+            component={PermissionRequestScreen}
+          />
+          <Stack.Screen
+            name="BackgroundPermissionPrimer"
+            component={BackgroundPermissionPrimerScreen}
+          />
+          <Stack.Screen
+            name="OnboardingComplete"
+            component={OnboardingCompleteScreen}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
     );
   }
 

@@ -147,9 +147,32 @@ export async function initializeUserKeys(user) {
       .single();
 
     if (existingUser?.public_key) {
-      console.log('User has public key in database but no local private key');
-      // This shouldn't happen in normal flow, but could happen if user reinstalled app
-      throw new Error('Key mismatch: public key exists but private key missing');
+      console.log('User has public key in database but no local private key - generating new keypair for new device');
+
+      // Generate new key pair for new device
+      const keyPair = await generateKeyPair();
+
+      // Store new private key securely on device
+      await storeSecurely(keyName, keyPair.privateKey);
+
+      // Update user record with new public key
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          public_key: keyPair.publicKey,
+        })
+        .eq('id', userId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // When public key changes, all existing friendships need to be reset
+      // Mark all active friendships as requiring re-acceptance
+      await invalidateExistingFriendships(userId);
+
+      console.log('New key pair generated for new device - friendships require re-acceptance');
+      return { isNewDevice: true };
     }
 
     // Generate new key pair
@@ -175,9 +198,48 @@ export async function initializeUserKeys(user) {
     }
 
     console.log('User keys initialized successfully');
+    return { isNewDevice: false };
 
   } catch (error) {
     console.error('Failed to initialize user keys:', error);
     throw new Error('Failed to initialize user keys');
+  }
+}
+
+/**
+ * Invalidate existing friendships when user gets a new device
+ * This is required because the old public key is no longer valid
+ * @param {string} userId - User ID
+ */
+async function invalidateExistingFriendships(userId) {
+  try {
+    // Set all active friendships involving this user back to pending status
+    // This will require friends to re-accept the sharing relationship
+    const { error: updateError } = await supabase
+      .from('friendships')
+      .update({ status: 'pending' })
+      .or(`user_id_1.eq.${userId},user_id_2.eq.${userId}`)
+      .eq('status', 'active');
+
+    if (updateError) {
+      console.error('Error invalidating friendships:', updateError);
+      throw updateError;
+    }
+
+    // Also clean up any old encrypted_locations for this user
+    // since they can't be decrypted with the new keys anyway
+    const { error: deleteError } = await supabase
+      .from('encrypted_locations')
+      .delete()
+      .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`);
+
+    if (deleteError) {
+      console.error('Error cleaning up old encrypted locations:', deleteError);
+    }
+
+    console.log('Existing friendships invalidated for new device');
+  } catch (error) {
+    console.error('Failed to invalidate existing friendships:', error);
+    throw error;
   }
 }
