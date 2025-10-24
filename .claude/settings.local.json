@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/Danallovertheplace/**)",
+      "Bash(lsof:*)",
+      "Bash(sort:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git init:*)",
+      "Bash(git push:*)",
+      "Bash(supabase:*)",
+      "Bash(psql:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(node:*)",
+      "Bash(npx create-expo-app:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx expo install:*)",
+      "Bash(curl:*)",
+      "Bash(npm run web:*)",
+      "Bash(npx expo start:*)",
+      "Bash(npm run supabase:start:*)",
+      "Bash(npx supabase:*)",
+      "Bash(kill:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run typecheck:*)",
+      "Bash(open http://localhost:3010)",
+      "Read(//tmp/**)",
+      "Bash(osascript:*)",
+      "Bash(screencapture:*)",
+      "Bash(open:*)",
+      "WebFetch(domain:docs.expo.dev)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm run build:*)",
+      "Bash(find:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
